@@ -1,0 +1,18 @@
+# STM32CubeIDE build output
+firmware/Debug/
+firmware/Release/
+firmware/.metadata/
+
+# Generated binaries and compiler reports
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.o
+*.d
+*.su
+*.cyclo
+
+# Local IDE launch state
+firmware/*.launch
