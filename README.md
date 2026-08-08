@@ -1,57 +1,144 @@
-# Multi-function-tracking-car-based-on-STM32 
-STM32驱动的多功能小车，实现调速、避障、循迹、倒车检测、温湿度显示等功能，你可以在你的oled屏幕上显示任何你想要的东西
+# STM32F103 multifunction robot car
 
-## 说在前面                                              
+An STM32CubeIDE project for a Bluetooth-controlled robot car with variable-speed
+drive, front and rear ultrasonic ranging, obstacle avoidance, four-sensor line
+tracking, servo scanning, a reversing-distance warning output, and an OLED
+status display.
 
-本代码底层部分与初始化全部由CubeIDE代劳，大力推荐开发者直接使用IDE开发，会大大提高你的开发效率（如果你没有寄存器编程方面要求的话）
+The complete, browsable firmware now lives in [`firmware/`](firmware/). The
+original [`Car_1.zip`](Car_1.zip) is retained as a historical snapshot; build
+outputs from its `Debug/` directory were deliberately not copied into source
+control.
 
-项目中oled.h，oled.c，font.h，font.c中有很多关于ssd1315驱动库的代码，可以积极探索使用
+<p align="center">
+  <img src="./小车形象图.jpg" width="720" alt="Completed STM32 multifunction robot car">
+</p>
 
- 调用OLED_NewFrame()开始绘制新的一帧； 
- 调用OLED_DrawXXX()系列函数绘制图形到显存； 
- 调用OLED_Printxxx()系列函数绘制文本到显存； 
- 调用OLED_ShowFrame()将显存内容显示到OLED...  
+## What is implemented
 
-项目中还含有温湿度传感器模块代码aht20.c,aht20.h，但考虑到一些因素（），我并没有在main函数中使用，有需要可以自取 
+- two-motor direction and six-level speed control;
+- five-position servo control;
+- front and rear ultrasonic distance measurement;
+- distance display on an SSD1315-compatible OLED;
+- reversing-distance warning output on PC15;
+- slow automatic obstacle avoidance with left/right scanning;
+- four-sensor infrared line tracking, including cross intersections;
+- two-byte commands received over a 9600-baud Bluetooth serial link;
+- an AHT20 temperature/humidity driver that is included but not called by the
+  current main loop.
 
-其余模块代码也并没有用到所有定义的函数，可以自行探索取用
+## Build and flash
 
+1. Install STM32CubeIDE and the STM32CubeF1 firmware package. The project was
+   generated against **STM32Cube FW_F1 V1.8.5**.
+2. In STM32CubeIDE, choose **File → Open Projects from File System** and select
+   the [`firmware/`](firmware/) directory.
+3. Confirm the target is **STM32F103C8Tx**. The checked-in configuration uses an
+   8 MHz external crystal and a 72 MHz system clock.
+4. Build the `Car_1` project and flash it with an ST-Link or another supported
+   programmer.
+5. Connect the Bluetooth module to USART2 and send the two raw command bytes
+   described below. ASCII text such as `"1,3"` is not the protocol.
 
-## 有哪些功能？ 
-* 灵活的速度、方向控制  
-    *  可以按需选择前进、后退、转弯时的不同档位
-    *  可以原地转圈圈
-* 舵机五个方向转动控制
-* `超声波前后测距`功能，并显示在oled屏幕上
-* `倒车报警`（蜂鸣器鸣笛，灯光闪烁），距离不同声音频率也不同  
-* 您可以使用`oled.h，oled.c，font.h，font.c`强大的驱动库在屏幕上显示任何你想要的东西
-* `自动避障`功能（都会先后退一小段距离） 
-    *  只有前方有物体时会自动选择左转
-    *  前方、左方有物体时会选择右转              
-    *  前方、右方有物体时会选择左转
-    *  前方、左方、右方都有物体时会选择倒车，直到走出死胡同，原地掉头
-* `红外循迹`功能
-    *  四个红外线反射模块安装在车头，左侧两个右侧两个
-    *  根据不同的反射组合做出不同的动作
-    *  可以解决黑线十字交叉路口问题
-    *  暂不能平稳度过锐角
-* 以上所有均可、`蓝牙模块`直接在手机上进行控制
+Motor power must not be sourced from an MCU GPIO pin. Use a motor driver and a
+suitable external supply, join the grounds, and verify every sensor's voltage
+before wiring it to a 3.3 V STM32 input. In particular, some ultrasonic modules
+produce a 5 V echo signal and need level shifting.
 
+## Bluetooth command protocol
 
+USART2 is configured as **9600 baud, 8 data bits, no parity, 1 stop bit**. Every
+command is exactly two bytes: `[action, value]`.
 
-## 有问题反馈                             
-在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流
+| action byte | behavior | value byte |
+|---:|---|---|
+| `0` | stop and center servo | ignored |
+| `1` | drive forward | speed level `0`–`5` |
+| `2` | drive backward | speed level `0`–`5` |
+| `3` | turn left | turn/speed level `0`–`5` |
+| `4` | turn right | turn/speed level `0`–`5` |
+| `5` | move servo | position `0`–`4` |
+| `6` | obstacle mode | `0` stop, `1` slow avoidance, `2` fast avoidance |
+| `7` | enter line-tracking mode | ignored |
 
-* 邮件：221900433@smail.nju.edu.cn
-* weibo: [@是猪猪呀TTG](http://weibo.com)    
-* Telegram: [@SR C](https://telegram.org)     
+The `action=6, value=2` path is reserved, but its
+`Auto_Obstacle_Avoidance_Fast()` implementation is currently empty. This is a
+known limitation, not a completed feature.
 
-## 结语
-```javascript
-STM32 = {
-  //欢迎大家积极取用项目中的各种模块与函数代码
-  //相信大家都能做出比我功能更好的作品
-  //欢迎大家在评论区交流，批评指正
-  //求求给孩子个Star🥺🥺🥺
-}
+## Confirmed peripheral map
 
+This table is derived from [`Car_1.ioc`](firmware/Car_1.ioc) and the checked-in
+source. Verify it against your own carrier board before applying power.
+
+| function | STM32 pin / peripheral |
+|---|---|
+| Bluetooth serial | PA2 / PA3, USART2 TX/RX, 9600 baud |
+| optional debug serial | PA9 / PA10, USART1 TX/RX, 115200 baud |
+| OLED and AHT20 bus | PB10 / PB11, I2C2 SCL/SDA |
+| motor PWM | PB6, TIM4 CH1 |
+| servo PWM | PA6, TIM3 CH1 |
+| left motor direction | PA4 / PA5 |
+| right motor direction | PB14 / PB15 |
+| rear ultrasonic trigger / echo | PC13 / PA8 |
+| front ultrasonic trigger / echo | PC14 / PA11 |
+| distance warning output | PC15 |
+| four line sensors | PA15 / PB5 / PB7 / PB9 |
+
+<p align="center">
+  <img src="./各模块标注图.png" width="820" alt="Annotated module layout of the robot car">
+</p>
+
+## Repository map
+
+```text
+firmware/
+├── Car_1.ioc             STM32CubeMX configuration
+├── Core/                 application and generated initialization code
+├── Drivers/              CMSIS and STM32F1 HAL sources with their licenses
+└── .project/.cproject    STM32CubeIDE project metadata
+Car_1.zip                 original project snapshot, including old build output
+*.mp4                     three hardware demonstrations
+*.jpg / *.png             build photographs and annotated module layout
+```
+
+The application modules are small enough to reuse independently: `motor.c`,
+`distance.c`, `infrared.c`, `obstacle_avoidance.c`, `Servo.c`, `oled.c`, and
+`aht20.c` are the best entry points.
+
+## Demonstrations
+
+- [Basic driving and control](./基本功能展示.mp4)
+- [Infrared line tracking](./红外循迹功能展示.mp4)
+- [Automatic obstacle avoidance](./自动避障功能展示.mp4)
+
+## Known limitations
+
+- fast obstacle avoidance is declared but not implemented;
+- the original author reports that line tracking does not pass sharp corners
+  smoothly;
+- the AHT20 driver is present but not integrated into the main loop;
+- the repository has not been rebuilt on hosted CI because STM32CubeIDE is not
+  available there; the source extraction and local inventory were verified,
+  but this cleanup does not claim a new hardware flash test.
+
+## 中文说明
+
+这是一个基于 STM32F103C8Tx 的多功能小车完整工程。主要功能包括蓝牙调速与
+方向控制、舵机五档转向、前后超声波测距、OLED 显示、倒车提醒、自动避障以及
+四路红外循迹。过去源码只放在 ZIP 中；现在可以直接在 [`firmware/`](firmware/)
+目录浏览，并用 STM32CubeIDE 导入构建。
+
+蓝牙协议不是字符串，而是两个原始字节 `[动作, 参数]`。例如 `{1, 3}` 表示以
+第 3 档前进，`{5, 2}` 表示舵机回到中间位置。接线与完整命令表见上文。
+
+如发现硬件组合、接线说明或代码方面的问题，请使用
+[GitHub Issues](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/issues)
+提交可复现的信息。
+
+## License status
+
+The STM32 HAL and CMSIS directories retain their own license files under
+[`firmware/Drivers/`](firmware/Drivers/). A repository-wide license for the
+application-specific source has not yet been declared, so do not assume rights
+beyond those component licenses. Choosing that license requires an explicit
+maintainer decision.
