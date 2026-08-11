@@ -66,6 +66,24 @@ pointer, Thumb state, and that the reset handler lies inside the flash image.
 Those are static build checks; they do not prove pin wiring, sensor polarity,
 timing, motor behavior, or a successful flash on physical hardware.
 
+### Download a CI-built image
+
+Versioned firmware files are published on the
+[Releases page](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/releases).
+Each release includes ELF, Intel HEX, raw BIN, and linker map files, plus
+`SHA256SUMS`, the build toolchain versions, third-party notices, and a GitHub
+build-provenance attestation. Verify a downloaded file with:
+
+```sh
+sha256sum --check SHA256SUMS
+gh attestation verify car-1.bin \
+  --repo CAOShurong/Multi-function-tracking-car-based-on-STM32
+```
+
+Use `car-1.hex` or `car-1.bin` only with an STM32F103C8Tx target and a suitable
+programmer. A passing CI build is not a substitute for checking your board,
+wiring, voltage levels, or motor power stage.
+
 Motor power must not be sourced from an MCU GPIO pin. Use a motor driver and a
 suitable external supply, join the grounds, and verify every sensor's voltage
 before wiring it to a 3.3 V STM32 input. In particular, some ultrasonic modules
