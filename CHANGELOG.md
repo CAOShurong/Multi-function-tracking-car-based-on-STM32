@@ -3,6 +3,15 @@
 All notable repository changes are documented here. This project follows
 [Semantic Versioning](https://semver.org/) for repository releases.
 
+## [Unreleased]
+
+### Changed
+
+- Pin every third-party GitHub Action to an immutable commit while retaining
+  version comments for reviewability.
+- Add weekly Dependabot checks for GitHub Actions updates; automatic security
+  fixes are also enabled in the repository settings.
+
 ## [0.1.1] - 2026-08-11
 
 ### Fixed
@@ -45,5 +54,6 @@ The release is compiled, linked, and statically checked in CI. It has not been
 newly flashed to physical hardware during this release process, so electrical,
 sensor, motor, timing, and board-specific behavior remains unverified.
 
+[Unreleased]: https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/releases/tag/v0.1.0
