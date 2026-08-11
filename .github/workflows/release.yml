@@ -1,0 +1,96 @@
+name: Release firmware
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    name: Build, attest, and publish
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: bash
+        run: '[[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+
+      - name: Install the Ubuntu 24.04 Arm bare-metal toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi
+          arm-none-eabi-gcc --version
+
+      - name: Test the artifact validator
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
+
+      - name: Configure the release build
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake
+
+      - name: Compile, link, and validate
+        shell: bash
+        run: |
+          cmake --build build --verbose
+          python3 tools/validate_firmware.py build/car-1.bin
+          test -s build/car-1.elf
+          test -s build/car-1.hex
+          test -s build/car-1.map
+          arm-none-eabi-readelf -h build/car-1.elf | grep 'Machine:.*ARM'
+
+      - name: Assemble release assets
+        shell: bash
+        run: |
+          mkdir dist
+          cp build/car-1.elf build/car-1.hex build/car-1.bin build/car-1.map dist/
+          cp THIRD_PARTY_NOTICES.md dist/
+          {
+            arm-none-eabi-gcc --version
+            cmake --version
+            ninja --version
+          } > dist/TOOLCHAIN.txt
+          (
+            cd dist
+            sha256sum \
+              car-1.elf car-1.hex car-1.bin car-1.map \
+              THIRD_PARTY_NOTICES.md TOOLCHAIN.txt > SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
+
+      - name: Attest release assets
+        uses: actions/attest@v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          CI-built firmware for the STM32F103C8Tx multifunction robot car.
+
+          The release job compiled and linked the checked-in source, checked the
+          vector table and flash/RAM bounds, recorded toolchain versions and
+          SHA-256 hashes, and produced a GitHub build-provenance attestation.
+
+          These files were not newly flashed onto physical hardware as part of
+          this release. Verify the target, wiring, voltage levels, motor driver,
+          and board-specific behavior before powering or flashing a vehicle.
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "STM32 robot car firmware $GITHUB_REF_NAME" \
+            --notes-file release-notes.md

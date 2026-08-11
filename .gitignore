@@ -3,6 +3,7 @@ firmware/Debug/
 firmware/Release/
 firmware/.metadata/
 /build/
+__pycache__/
 
 # Generated binaries and compiler reports
 *.elf
