@@ -1,0 +1,57 @@
+name: Firmware
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Install the Ubuntu 24.04 Arm bare-metal toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi
+          arm-none-eabi-gcc --version
+
+      - name: Test the artifact validator
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
+
+      - name: Configure the release build
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake
+
+      - name: Compile, link, and generate flash images
+        run: cmake --build build --verbose
+
+      - name: Validate firmware shape and record hashes
+        run: |
+          python3 tools/validate_firmware.py build/car-1.bin
+          test -s build/car-1.elf
+          test -s build/car-1.hex
+          test -s build/car-1.map
+          arm-none-eabi-readelf -h build/car-1.elf | grep 'Machine:.*ARM'
+          sha256sum build/car-1.elf build/car-1.hex build/car-1.bin build/car-1.map
+
+      - name: Upload reviewable firmware artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: stm32f103-robot-car-firmware
+          path: |
+            build/car-1.elf
+            build/car-1.hex
+            build/car-1.bin
+            build/car-1.map
+          if-no-files-found: error
+          retention-days: 14
