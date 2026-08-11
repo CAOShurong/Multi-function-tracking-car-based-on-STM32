@@ -35,6 +35,7 @@
 #include "infrared.h"
 #include "aht20.h"
 #include "font.h"
+#include "control_protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,7 +56,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t receive[2];
+volatile uint8_t receive[2] = {0, 0};
+static uint8_t uart_receive[2];
 uint8_t get;
 int StartTimeUpEdge_Rear = 0;
 int EndTimeDownEdge_Rear = 0;
@@ -73,10 +75,26 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void SnapshotLatestCommand(uint8_t *action, uint8_t *value)
+{
+  uint32_t primask = __get_PRIMASK();
+
+  __disable_irq();
+  *action = receive[0];
+  *value = receive[1];
+  __set_PRIMASK(primask);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	  HAL_UART_Transmit_IT(&huart2, receive, sizeof(receive));
-	  HAL_UART_Receive_IT(&huart2, receive, sizeof(receive));
+  if (huart != &huart2) {
+    return;
+  }
+
+  receive[0] = uart_receive[0];
+  receive[1] = uart_receive[1];
+  HAL_UART_Transmit_IT(&huart2, uart_receive, sizeof(uart_receive));
+  HAL_UART_Receive_IT(&huart2, uart_receive, sizeof(uart_receive));
 }
 
 /* USER CODE END 0 */
@@ -129,7 +147,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   __HAL_TIM_SetCompare(&htim3, TIM_CHANNEL_1, 14);
   //开启UART2轮询接收模式
-  HAL_UART_Receive_IT(&huart2, receive, sizeof(receive));
+  HAL_UART_Receive_IT(&huart2, uart_receive, sizeof(uart_receive));
   //设置轮子初始速度
   __HAL_TIM_SetCompare(&htim4, TIM_CHANNEL_1, 0);
   //OLED初始化
@@ -148,41 +166,49 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  uint8_t action;
+	  uint8_t value;
+
 	  //前后测量
 	  Fore_Rea_Ranging();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 	  //蓝牙接收数据，配置四个轮子
-	  if(receive[0] == 0){
+	  SnapshotLatestCommand(&action, &value);
+	  if (!ControlCommand_IsValid(action, value)) {
+		  ServoSetAngle(2);
+		  Stop();
+		  continue;
+	  }
+
+	  if(action == 0){
 		  ServoSetAngle(2);
 		  Stop();
 	  }
-	  else if(receive[0] == 1){
+	  else if(action == 1){
 		  //表明收到指令向前走
-		  GoHead();
-	  }else if(receive[0] == 2){
+		  GoHead(value);
+	  }else if(action == 2){
 		  //表明收到指令向后走
-		  GoBack();
-	  }else if(receive[0] == 3){
+		  GoBack(value);
+	  }else if(action == 3){
 		  //表明收到指令向左转
-		  TurnLeft();
-	  }else if(receive[0] == 4){
+		  TurnLeft(value);
+	  }else if(action == 4){
 		  //表明收到指令向右转
-		  TurnRight();
-	  }else if(receive[0] == 5){
+		  TurnRight(value);
+	  }else if(action == 5){
 		  //表明收到舵机控制指令
-		  ServoSetAngle(receive[1]);
-	  }else if(receive[0] == 6){
+		  ServoSetAngle(value);
+	  }else if(action == 6){
 		  //表明收到自动避障指令
-		  if(receive[1] == 0){
+		  if(value == 0){
 			  Stop();
-		  }else if(receive[1] == 1){
+		  }else if(value == 1){
 			  Auto_Obstacle_Avoidance_Slow();
-		  }else if(receive[1] == 2){
-			  Auto_Obstacle_Avoidance_Fast();
 		  }
-	  }else if(receive[0] == 7){
+	  }else if(action == 7){
 		  Track();
 	  }
 

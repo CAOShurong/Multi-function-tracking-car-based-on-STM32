@@ -63,6 +63,8 @@ python tools/validate_firmware.py build/car-1.bin
 The build produces `car-1.elf`, `car-1.hex`, `car-1.bin`, `car-1.map`, and a
 disassembly listing. The validator checks image size, the initial stack
 pointer, Thumb state, and that the reset handler lies inside the flash image.
+CI also compiles a host-side protocol test that exhaustively checks all 65,536
+possible two-byte Bluetooth commands before building the firmware.
 Those are static build checks; they do not prove pin wiring, sensor polarity,
 timing, motor behavior, or a successful flash on physical hardware.
 
@@ -94,6 +96,11 @@ produce a 5 V echo signal and need level shifting.
 USART2 is configured as **9600 baud, 8 data bits, no parity, 1 stop bit**. Every
 command is exactly two bytes: `[action, value]`.
 
+The receive callback publishes only complete two-byte commands. The main loop
+takes an interrupt-protected snapshot and validates both bytes before changing
+motor direction or PWM. An unknown action, an out-of-range value, or the
+unimplemented fast-avoidance command stops the motors and centers the servo.
+
 | action byte | behavior | value byte |
 |---:|---|---|
 | `0` | stop and center servo | ignored |
@@ -102,12 +109,13 @@ command is exactly two bytes: `[action, value]`.
 | `3` | turn left | turn/speed level `0`–`5` |
 | `4` | turn right | turn/speed level `0`–`5` |
 | `5` | move servo | position `0`–`4` |
-| `6` | obstacle mode | `0` stop, `1` slow avoidance, `2` fast avoidance |
+| `6` | obstacle mode | `0` stop, `1` slow avoidance; `2` is rejected until implemented |
 | `7` | enter line-tracking mode | ignored |
 
-The `action=6, value=2` path is reserved, but its
-`Auto_Obstacle_Avoidance_Fast()` implementation is currently empty. This is a
-known limitation, not a completed feature.
+The `action=6, value=2` path remains reserved, but its
+`Auto_Obstacle_Avoidance_Fast()` implementation is currently empty. The command
+therefore takes the safe-stop path instead of silently retaining an earlier
+motor state.
 
 ## Confirmed peripheral map
 
@@ -158,6 +166,9 @@ The application modules are small enough to reuse independently: `motor.c`,
 ## Known limitations
 
 - fast obstacle avoidance is declared but not implemented;
+- the two-byte protocol has no frame marker, checksum, acknowledgement, or
+  heartbeat timeout; loss of the Bluetooth link does not by itself stop a
+  previously accepted motion command;
 - the original author reports that line tracking does not pass sharp corners
   smoothly;
 - the AHT20 driver is present but not integrated into the main loop;

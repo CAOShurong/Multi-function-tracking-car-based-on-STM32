@@ -11,7 +11,7 @@
 #include "obstacle_avoidance.h"
 #include "infrared.h"
 
-extern uint8_t receive[2];
+extern volatile uint8_t receive[2];
 
 void Track()
 {
