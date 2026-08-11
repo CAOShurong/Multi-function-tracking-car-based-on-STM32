@@ -9,6 +9,7 @@
 #include "motor.h"
 #include "Servo.h"
 #include "obstacle_avoidance.h"
+#include "distance.h"
 #include "infrared.h"
 
 extern float distance_front;

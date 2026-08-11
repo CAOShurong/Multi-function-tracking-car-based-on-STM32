@@ -1,5 +1,7 @@
 # STM32F103 multifunction robot car
 
+[![Firmware build](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/actions/workflows/firmware.yml/badge.svg)](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/actions/workflows/firmware.yml)
+
 An STM32CubeIDE project for a Bluetooth-controlled robot car with variable-speed
 drive, front and rear ultrasonic ranging, obstacle avoidance, four-sensor line
 tracking, servo scanning, a reversing-distance warning output, and an OLED
@@ -29,6 +31,8 @@ control.
 
 ## Build and flash
 
+### STM32CubeIDE
+
 1. Install STM32CubeIDE and the STM32CubeF1 firmware package. The project was
    generated against **STM32Cube FW_F1 V1.8.5**.
 2. In STM32CubeIDE, choose **File → Open Projects from File System** and select
@@ -39,6 +43,28 @@ control.
    programmer.
 5. Connect the Bluetooth module to USART2 and send the two raw command bytes
    described below. ASCII text such as `"1,3"` is not the protocol.
+
+### Headless CMake build
+
+For a reviewable build without opening STM32CubeIDE, install CMake 3.20 or
+newer, Ninja (or another CMake generator), and an `arm-none-eabi` GNU toolchain.
+The original project used GNU Tools for STM32 12.3.rel1; hosted CI builds with
+Ubuntu 24.04's Arm bare-metal package, and the repository is also checked with
+Arm GNU Toolchain 15.2.rel1.
+
+```sh
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake
+cmake --build build --verbose
+python tools/validate_firmware.py build/car-1.bin
+```
+
+The build produces `car-1.elf`, `car-1.hex`, `car-1.bin`, `car-1.map`, and a
+disassembly listing. The validator checks image size, the initial stack
+pointer, Thumb state, and that the reset handler lies inside the flash image.
+Those are static build checks; they do not prove pin wiring, sensor polarity,
+timing, motor behavior, or a successful flash on physical hardware.
 
 Motor power must not be sourced from an MCU GPIO pin. Use a motor driver and a
 suitable external supply, join the grounds, and verify every sensor's voltage
@@ -117,9 +143,8 @@ The application modules are small enough to reuse independently: `motor.c`,
 - the original author reports that line tracking does not pass sharp corners
   smoothly;
 - the AHT20 driver is present but not integrated into the main loop;
-- the repository has not been rebuilt on hosted CI because STM32CubeIDE is not
-  available there; the source extraction and local inventory were verified,
-  but this cleanup does not claim a new hardware flash test.
+- hosted CI compiles and links the firmware and validates the generated image,
+  but no new physical-device flash test is claimed.
 
 ## 中文说明
 
@@ -138,7 +163,9 @@ The application modules are small enough to reuse independently: `motor.c`,
 ## License status
 
 The STM32 HAL and CMSIS directories retain their own license files under
-[`firmware/Drivers/`](firmware/Drivers/). A repository-wide license for the
-application-specific source has not yet been declared, so do not assume rights
-beyond those component licenses. Choosing that license requires an explicit
-maintainer decision.
+[`firmware/Drivers/`](firmware/Drivers/). The OLED driver also declares MIT in
+its source header. See [third-party notices](THIRD_PARTY_NOTICES.md) for the
+component-by-component provenance and its gaps. A repository-wide license for
+the application-specific source, photographs, and videos has not yet been
+declared, so do not assume rights beyond the component licenses. Choosing that
+license requires an explicit maintainer decision.

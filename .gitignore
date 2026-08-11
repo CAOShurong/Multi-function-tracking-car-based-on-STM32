@@ -2,6 +2,7 @@
 firmware/Debug/
 firmware/Release/
 firmware/.metadata/
+/build/
 
 # Generated binaries and compiler reports
 *.elf
