@@ -13,7 +13,7 @@
 #include "infrared.h"
 
 extern float distance_front;
-extern uint8_t receive[2];
+extern volatile uint8_t receive[2];
 
 void Auto_Obstacle_Avoidance_Slow()
 {

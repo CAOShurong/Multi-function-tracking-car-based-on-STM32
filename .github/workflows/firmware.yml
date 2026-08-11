@@ -26,6 +26,15 @@ jobs:
       - name: Test the artifact validator
         run: python3 -m unittest discover -s tools -p 'test_*.py'
 
+      - name: Test every Bluetooth command byte pair
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror \
+            -Ifirmware/Core/Inc \
+            tools/test_control_protocol.c \
+            firmware/Core/Src/control_protocol.c \
+            -o "$RUNNER_TEMP/control_protocol_test"
+          "$RUNNER_TEMP/control_protocol_test"
+
       - name: Configure the release build
         run: >-
           cmake -S . -B build -G Ninja
