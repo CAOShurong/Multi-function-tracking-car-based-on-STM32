@@ -36,8 +36,9 @@ outputs were not copied into source control.
 - four-sensor infrared line tracking, including cross intersections;
 - Bluetooth commands as two raw bytes, a numeric line such as `1,3`, **or**
   a named line such as `fwd 3` / `w` / `qianjin` / `ting`;
-- USART1 debug TX prints `front:12.3 rear:8.1` about five times a second
-  (pipe into [termscope](https://github.com/CAOShurong/termscope));
+- USART1 debug TX prints `front:12.3 rear:8.1 hold:0` about five times a second
+  (pipe into [termscope](https://github.com/CAOShurong/termscope)), with
+  `hold:1` when a front reading would block `fwd`;
 - an AHT20 temperature/humidity driver that is included but not called by the
   current main loop.
 
@@ -126,6 +127,12 @@ seconds** after the last complete UART command. If the Bluetooth link drops,
 the motors stop. Repeat the drive line to keep moving, or send `track` /
 `avoid` for unattended motion — those modes do not time out. `stop` and
 `servo` are unchanged.
+
+`fwd` (action 1) also **stops if the front ultrasonic reading is under 15 cm**.
+That is the same threshold the rear bumper already uses for its warning LED.
+Turn, reverse, track, and avoid still run. A 0 cm or >400 cm reading is treated
+as no echo (unplugged / timeout), not as a wall, so a missing sensor does not
+brick manual drive. Host-tested; not newly flashed to hardware.
 
 The receive callback publishes only complete commands. The main loop takes an
 interrupt-protected snapshot and validates both bytes before changing motor

@@ -193,8 +193,10 @@ int main(void)
 		  if ((now - last_telem) >= 200u) {
 			  char line[48];
 			  int n = snprintf(
-				  line, sizeof line, "front:%.1f rear:%.1f\r\n",
-				  (double)distance_front, (double)distance_rear
+				  line, sizeof line, "front:%.1f rear:%.1f hold:%.0f\r\n",
+				  (double)distance_front,
+				  (double)distance_rear,
+				  ControlCommand_HoldForward(1u, distance_front) ? 1.0 : 0.0
 			  );
 			  if (n > 0 && n < (int)sizeof line) {
 				  (void)HAL_UART_Transmit(&huart1, (uint8_t *)line, (uint16_t)n, 20);
@@ -215,6 +217,11 @@ int main(void)
 	  if (ControlCommand_DriveExpired(
 			  action, HAL_GetTick(), cmd_tick, CONTROL_DRIVE_TIMEOUT_MS)) {
 		  /* Bluetooth dropped or the phone stopped repeating fwd/back/left/right. */
+		  Stop();
+		  continue;
+	  }
+	  if (ControlCommand_HoldForward(action, distance_front)) {
+		  /* Wall in front: keep left/right/back, but do not drive into it. */
 		  Stop();
 		  continue;
 	  }

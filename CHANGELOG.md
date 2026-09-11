@@ -7,6 +7,11 @@ All notable repository changes are documented here. This project follows
 
 ### Added
 
+- Manual Bluetooth `fwd` stops when the front ultrasonic reading is under
+  15 cm, so a phone held on `w` does not drive into a wall. `back` / `left` /
+  `right`, `track`, and `avoid` are unchanged. A 0 cm or >400 cm reading is
+  treated as no-echo, not a wall. USART1 telemetry adds `hold:0|1`. Host-tested;
+  not newly flashed to hardware.
 - Manual Bluetooth drive (actions 1–4) expires 3 s after the last complete
   UART command, so a dropped SPP link stops the motors. `track` and `avoid`
   do not time out. Host-tested; not newly flashed to hardware.

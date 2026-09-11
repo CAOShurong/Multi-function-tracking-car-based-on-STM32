@@ -18,6 +18,19 @@ bool ControlCommand_DriveExpired(
     return elapsed > timeout_ms;
 }
 
+bool ControlCommand_HoldForward(uint8_t action, float front_cm)
+{
+    /* Only Bluetooth/manual forward. Track/avoid have their own sensors.
+       No-echo (0) and out-of-range readings must not brick the car. */
+    if (action != 1u) {
+        return false;
+    }
+    if (!(front_cm > 0.0f) || front_cm > CONTROL_RANGE_MAX_CM) {
+        return false;
+    }
+    return front_cm < CONTROL_FWD_HOLD_CM;
+}
+
 bool ControlCommand_IsValid(uint8_t action, uint8_t value)
 {
     switch (action) {

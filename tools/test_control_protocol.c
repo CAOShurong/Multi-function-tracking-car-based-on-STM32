@@ -157,6 +157,17 @@ int main(void)
     assert(ControlCommand_DriveExpired(1, 4001u, 1000u, 3000u));
     assert(!ControlCommand_DriveExpired(7, 9000u, 1000u, 3000u));
     assert(!ControlCommand_DriveExpired(1, 9000u, 1000u, 0u));
+
+    assert(ControlCommand_HoldForward(1, 5.0f));
+    assert(ControlCommand_HoldForward(1, 14.9f));
+    assert(!ControlCommand_HoldForward(1, 15.0f));
+    assert(!ControlCommand_HoldForward(1, 80.0f));
+    assert(!ControlCommand_HoldForward(1, 0.0f));
+    assert(!ControlCommand_HoldForward(1, -3.0f));
+    assert(!ControlCommand_HoldForward(1, 401.0f));
+    assert(!ControlCommand_HoldForward(2, 5.0f));
+    assert(!ControlCommand_HoldForward(7, 5.0f));
+    assert(!ControlCommand_HoldForward(0, 5.0f));
     /* Unsigned tick wrap: last near 2^32-1, now small. */
     assert(ControlCommand_DriveExpired(2, 100u, 0xFFFFFFFFu - 4000u, 3000u));
 
