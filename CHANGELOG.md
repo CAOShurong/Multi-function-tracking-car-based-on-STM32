@@ -5,6 +5,12 @@ All notable repository changes are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Accept Bluetooth text lines such as `1,3` (CR/LF) in addition to the
+  original two raw bytes, so Serial Bluetooth Terminal can drive the car.
+  Non-numeric lines are ignored; binary two-byte commands still work.
+
 ### Changed
 
 - Put a Chinese one-line pitch, CMake command, and MIT badge on the first screen.

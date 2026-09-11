@@ -1,6 +1,6 @@
 # STM32F103 多功能循迹小车
 
-**STM32F103 蓝牙小车：四路循迹、超声波避障、OLED。源码在 [`firmware/`](firmware/)，不是只有 ZIP。**
+**STM32F103 蓝牙小车：四路循迹、超声波避障、OLED。手机串口助手可发 `1,3`。源码在 [`firmware/`](firmware/)，不是只有 ZIP。**
 
 Bluetooth-controlled STM32F103 robot car: variable-speed drive, line tracking,
 ultrasonic obstacle avoidance, servo scan, reversing warning, OLED.
@@ -34,7 +34,7 @@ outputs were not copied into source control.
 - reversing-distance warning output on PC15;
 - slow automatic obstacle avoidance with left/right scanning;
 - four-sensor infrared line tracking, including cross intersections;
-- two-byte commands received over a 9600-baud Bluetooth serial link;
+- Bluetooth commands as two raw bytes **or** a text line such as `1,3`;
 - an AHT20 temperature/humidity driver that is included but not called by the
   current main loop.
 
@@ -50,8 +50,8 @@ outputs were not copied into source control.
    8 MHz external crystal and a 72 MHz system clock.
 4. Build the `Car_1` project and flash it with an ST-Link or another supported
    programmer.
-5. Connect the Bluetooth module to USART2 and send the two raw command bytes
-   described below. ASCII text such as `"1,3"` is not the protocol.
+5. Connect the Bluetooth module to USART2. Send either two raw command bytes
+   or a text line such as `1,3` (Serial Bluetooth Terminal works).
 
 ### Headless CMake build
 
@@ -73,7 +73,8 @@ The build produces `car-1.elf`, `car-1.hex`, `car-1.bin`, `car-1.map`, and a
 disassembly listing. The validator checks image size, the initial stack
 pointer, Thumb state, and that the reset handler lies inside the flash image.
 CI also compiles a host-side protocol test that exhaustively checks all 65,536
-possible two-byte Bluetooth commands before building the firmware.
+possible two-byte Bluetooth commands, plus ASCII lines such as `1,3`, before
+building the firmware.
 Those are static build checks; they do not prove pin wiring, sensor polarity,
 timing, motor behavior, or a successful flash on physical hardware.
 
@@ -102,12 +103,19 @@ produce a 5 V echo signal and need level shifting.
 
 ## Bluetooth command protocol
 
-USART2 is configured as **9600 baud, 8 data bits, no parity, 1 stop bit**. Every
-command is exactly two bytes: `[action, value]`.
+USART2 is configured as **9600 baud, 8 data bits, no parity, 1 stop bit**.
 
-The receive callback publishes only complete two-byte commands. The main loop
-takes an interrupt-protected snapshot and validates both bytes before changing
-motor direction or PWM. An unknown action, an out-of-range value, or the
+Two encodings are accepted:
+
+- **binary**: exactly two bytes `[action, value]`, as before;
+- **text**: a line `action,value` or `action value`, terminated by CR/LF.
+  Example: `1,3` then Enter is forward at speed 3. A phone serial terminal
+  can send this. Incomplete or non-numeric lines are ignored; the last valid
+  command stays in effect.
+
+The receive callback publishes only complete commands. The main loop takes an
+interrupt-protected snapshot and validates both bytes before changing motor
+direction or PWM. An unknown action, an out-of-range value, or the
 unimplemented fast-avoidance command stops the motors and centers the servo.
 
 | action byte | behavior | value byte |
@@ -191,8 +199,9 @@ The application modules are small enough to reuse independently: `motor.c`,
 四路红外循迹。过去源码只放在 ZIP 中；现在可以直接在 [`firmware/`](firmware/)
 目录浏览，并用 STM32CubeIDE 导入构建。
 
-蓝牙协议不是字符串，而是两个原始字节 `[动作, 参数]`。例如 `{1, 3}` 表示以
-第 3 档前进，`{5, 2}` 表示舵机回到中间位置。接线与完整命令表见上文。
+蓝牙协议可以是两个原始字节 `[动作, 参数]`，也可以是手机串口助手发的文本
+`1,3` 加回车。例如 `{1, 3}` 或 `1,3` 表示以第 3 档前进，`{5, 2}` 或 `5,2`
+表示舵机回到中间位置。接线与完整命令表见上文。
 
 如发现硬件组合、接线说明或代码方面的问题，请使用
 [GitHub Issues](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/issues)

@@ -57,7 +57,9 @@
 
 /* USER CODE BEGIN PV */
 volatile uint8_t receive[2] = {0, 0};
-static uint8_t uart_receive[2];
+static uint8_t uart_byte;
+static uint8_t uart_echo[2];
+static ControlRx uart_rx;
 uint8_t get;
 int StartTimeUpEdge_Rear = 0;
 int EndTimeDownEdge_Rear = 0;
@@ -87,14 +89,21 @@ static void SnapshotLatestCommand(uint8_t *action, uint8_t *value)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+  uint8_t action;
+  uint8_t value;
+
   if (huart != &huart2) {
     return;
   }
 
-  receive[0] = uart_receive[0];
-  receive[1] = uart_receive[1];
-  HAL_UART_Transmit_IT(&huart2, uart_receive, sizeof(uart_receive));
-  HAL_UART_Receive_IT(&huart2, uart_receive, sizeof(uart_receive));
+  if (ControlRx_Feed(&uart_rx, uart_byte, &action, &value)) {
+    receive[0] = action;
+    receive[1] = value;
+    uart_echo[0] = action;
+    uart_echo[1] = value;
+    HAL_UART_Transmit_IT(&huart2, uart_echo, sizeof(uart_echo));
+  }
+  HAL_UART_Receive_IT(&huart2, &uart_byte, 1);
 }
 
 /* USER CODE END 0 */
@@ -146,8 +155,9 @@ int main(void)
   //TIM3控制舵机 50HZ
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   __HAL_TIM_SetCompare(&htim3, TIM_CHANNEL_1, 14);
-  //开启UART2轮询接收模式
-  HAL_UART_Receive_IT(&huart2, uart_receive, sizeof(uart_receive));
+  // USART2: one byte at a time so ASCII "1,3" and two-byte binary both work
+  ControlRx_Init(&uart_rx);
+  HAL_UART_Receive_IT(&huart2, &uart_byte, 1);
   //设置轮子初始速度
   __HAL_TIM_SetCompare(&htim4, TIM_CHANNEL_1, 0);
   //OLED初始化
