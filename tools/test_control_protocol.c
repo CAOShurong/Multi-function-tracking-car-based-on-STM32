@@ -100,6 +100,12 @@ int main(void)
 
     ControlRx_Init(&rx);
     {
+        const uint8_t letters[] = {'h', 'e'};
+        assert(!feed_bytes(&rx, letters, sizeof(letters), &action, &value));
+    }
+
+    ControlRx_Init(&rx);
+    {
         const uint8_t no_cmd[] = {'h', 'e', 'l', 'l', 'o', '\n'};
         assert(!feed_bytes(&rx, no_cmd, sizeof(no_cmd), &action, &value));
     }

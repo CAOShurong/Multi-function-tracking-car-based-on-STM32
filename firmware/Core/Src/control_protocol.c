@@ -25,9 +25,10 @@ static bool is_space(uint8_t byte)
     return byte == ' ' || byte == '\t';
 }
 
-static bool is_ascii_payload(uint8_t byte)
+static bool is_text_byte(uint8_t byte)
 {
-    return (byte >= '0' && byte <= '9') || byte == ',' || is_space(byte);
+    /* Printable ASCII, including letters. Binary commands are 0-7 / 0-5. */
+    return byte >= 0x20u && byte <= 0x7Eu;
 }
 
 bool ControlCommand_ParseAscii(const char *line, size_t len, uint8_t *action, uint8_t *value)
@@ -131,7 +132,7 @@ bool ControlRx_Feed(ControlRx *rx, uint8_t byte, uint8_t *action, uint8_t *value
         return ok;
     }
 
-    if (is_ascii_payload(byte)) {
+    if (is_text_byte(byte)) {
         rx->binary_len = 0;
         if (rx->ascii_len < CONTROL_RX_ASCII_MAX) {
             rx->ascii[rx->ascii_len++] = byte;

@@ -10,6 +10,7 @@ All notable repository changes are documented here. This project follows
 - Accept Bluetooth text lines such as `1,3` (CR/LF) in addition to the
   original two raw bytes, so Serial Bluetooth Terminal can drive the car.
   Non-numeric lines are ignored; binary two-byte commands still work.
+  Printable ASCII is never treated as a two-byte binary frame.
 
 ### Changed
 
