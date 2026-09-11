@@ -1,5 +1,23 @@
 #include "control_protocol.h"
 
+bool ControlCommand_IsManualDrive(uint8_t action)
+{
+    return action >= 1u && action <= 4u;
+}
+
+bool ControlCommand_DriveExpired(
+    uint8_t action, uint32_t now_ms, uint32_t last_ms, uint32_t timeout_ms
+)
+{
+    uint32_t elapsed;
+
+    if (!ControlCommand_IsManualDrive(action) || timeout_ms == 0u) {
+        return false;
+    }
+    elapsed = now_ms - last_ms;
+    return elapsed > timeout_ms;
+}
+
 bool ControlCommand_IsValid(uint8_t action, uint8_t value)
 {
     switch (action) {

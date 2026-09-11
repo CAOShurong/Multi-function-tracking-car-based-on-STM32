@@ -7,6 +7,9 @@ All notable repository changes are documented here. This project follows
 
 ### Added
 
+- Manual Bluetooth drive (actions 1–4) expires 3 s after the last complete
+  UART command, so a dropped SPP link stops the motors. `track` and `avoid`
+  do not time out. Host-tested; not newly flashed to hardware.
 - Named Bluetooth lines such as `fwd 3`, WASD (`w`/`a`/`s`/`d`), and pinyin
   (`qianjin`, `ting`, `xunji`, `bizhang`) in addition to `1,3` and two raw
   bytes. Drive words default to speed 3; `stop`/`ting` halt. Host tests cover

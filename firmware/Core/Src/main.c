@@ -57,6 +57,7 @@
 
 /* USER CODE BEGIN PV */
 volatile uint8_t receive[2] = {0, 0};
+volatile uint32_t command_tick_ms = 0;
 static uint8_t uart_byte;
 static uint8_t uart_echo[2];
 static ControlRx uart_rx;
@@ -77,13 +78,14 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static void SnapshotLatestCommand(uint8_t *action, uint8_t *value)
+static void SnapshotLatestCommand(uint8_t *action, uint8_t *value, uint32_t *tick_ms)
 {
   uint32_t primask = __get_PRIMASK();
 
   __disable_irq();
   *action = receive[0];
   *value = receive[1];
+  *tick_ms = command_tick_ms;
   __set_PRIMASK(primask);
 }
 
@@ -99,6 +101,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   if (ControlRx_Feed(&uart_rx, uart_byte, &action, &value)) {
     receive[0] = action;
     receive[1] = value;
+    command_tick_ms = HAL_GetTick();
     uart_echo[0] = action;
     uart_echo[1] = value;
     HAL_UART_Transmit_IT(&huart2, uart_echo, sizeof(uart_echo));
@@ -178,6 +181,7 @@ int main(void)
   {
 	  uint8_t action;
 	  uint8_t value;
+	  uint32_t cmd_tick;
 
 	  //前后测量
 	  Fore_Rea_Ranging();
@@ -202,9 +206,15 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  //蓝牙接收数据，配置四个轮子
-	  SnapshotLatestCommand(&action, &value);
+	  SnapshotLatestCommand(&action, &value, &cmd_tick);
 	  if (!ControlCommand_IsValid(action, value)) {
 		  ServoSetAngle(2);
+		  Stop();
+		  continue;
+	  }
+	  if (ControlCommand_DriveExpired(
+			  action, HAL_GetTick(), cmd_tick, CONTROL_DRIVE_TIMEOUT_MS)) {
+		  /* Bluetooth dropped or the phone stopped repeating fwd/back/left/right. */
 		  Stop();
 		  continue;
 	  }

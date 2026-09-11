@@ -119,7 +119,13 @@ Three encodings are accepted:
   the number. Case does not matter.
 
 A phone serial terminal can send any of the text forms. Incomplete or
-unknown lines are ignored; the last valid command stays in effect.
+unknown lines are ignored.
+
+Manual drive (`fwd` / `back` / `left` / `right`, actions 1–4) **expires 3
+seconds** after the last complete UART command. If the Bluetooth link drops,
+the motors stop. Repeat the drive line to keep moving, or send `track` /
+`avoid` for unattended motion — those modes do not time out. `stop` and
+`servo` are unchanged.
 
 The receive callback publishes only complete commands. The main loop takes an
 interrupt-protected snapshot and validates both bytes before changing motor
@@ -193,9 +199,9 @@ The application modules are small enough to reuse independently: `motor.c`,
 ## Known limitations
 
 - fast obstacle avoidance is declared but not implemented;
-- the two-byte protocol has no frame marker, checksum, acknowledgement, or
-  heartbeat timeout; loss of the Bluetooth link does not by itself stop a
-  previously accepted motion command;
+- the two-byte protocol has no frame marker, checksum, or acknowledgement;
+  manual drive (actions 1–4) now stops after 3 s without a new command, but
+  `track` / `avoid` still run until another command arrives;
 - the original author reports that line tracking does not pass sharp corners
   smoothly;
 - the AHT20 driver is present but not integrated into the main loop;
@@ -211,7 +217,8 @@ The application modules are small enough to reuse independently: `motor.c`,
 
 蓝牙协议可以是两个原始字节 `[动作, 参数]`，也可以是手机串口助手发的文本
 `1,3` 或 `fwd 3` / `w` / `qianjin` 加回车。`stop` 或 `ting` 停车，`track` 或
-`xunji` 循迹，`avoid` 或 `bizhang` 避障。USART1 会输出 `front:12.3 rear:8.1`
+`xunji` 循迹，`avoid` 或 `bizhang` 避障。前进/后退/转向在 **3 秒内没有新指令**
+时停车（蓝牙掉线保护）；循迹和避障不超时。USART1 会输出 `front:12.3 rear:8.1`
 测距行。接线与完整命令表见上文。
 
 如发现硬件组合、接线说明或代码方面的问题，请使用

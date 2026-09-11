@@ -148,5 +148,17 @@ int main(void)
         assert(action == 1 && value == 3);
     }
 
+    assert(ControlCommand_IsManualDrive(1));
+    assert(ControlCommand_IsManualDrive(4));
+    assert(!ControlCommand_IsManualDrive(0));
+    assert(!ControlCommand_IsManualDrive(7));
+    assert(!ControlCommand_DriveExpired(1, 1000u, 1000u, 3000u));
+    assert(!ControlCommand_DriveExpired(1, 3999u, 1000u, 3000u));
+    assert(ControlCommand_DriveExpired(1, 4001u, 1000u, 3000u));
+    assert(!ControlCommand_DriveExpired(7, 9000u, 1000u, 3000u));
+    assert(!ControlCommand_DriveExpired(1, 9000u, 1000u, 0u));
+    /* Unsigned tick wrap: last near 2^32-1, now small. */
+    assert(ControlCommand_DriveExpired(2, 100u, 0xFFFFFFFFu - 4000u, 3000u));
+
     return 0;
 }

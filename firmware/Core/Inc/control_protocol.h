@@ -6,8 +6,14 @@
 #include <stdint.h>
 
 #define CONTROL_RX_ASCII_MAX 16u
+/* Manual drive (fwd/back/left/right) expires without a new UART command. */
+#define CONTROL_DRIVE_TIMEOUT_MS 3000u
 
 bool ControlCommand_IsValid(uint8_t action, uint8_t value);
+bool ControlCommand_IsManualDrive(uint8_t action);
+bool ControlCommand_DriveExpired(
+    uint8_t action, uint32_t now_ms, uint32_t last_ms, uint32_t timeout_ms
+);
 bool ControlCommand_ParseAscii(const char *line, size_t len, uint8_t *action, uint8_t *value);
 
 typedef struct {
