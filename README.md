@@ -1,6 +1,6 @@
 # STM32F103 多功能循迹小车
 
-**STM32F103 蓝牙小车：四路循迹、超声波避障、OLED。手机串口助手可发 `1,3`。源码在 [`firmware/`](firmware/)，不是只有 ZIP。**
+**STM32F103 蓝牙小车：四路循迹、超声波避障、OLED。手机串口助手可发 `fwd 3` / `1,3`。源码在 [`firmware/`](firmware/)，不是只有 ZIP。**
 
 Bluetooth-controlled STM32F103 robot car: variable-speed drive, line tracking,
 ultrasonic obstacle avoidance, servo scan, reversing warning, OLED.
@@ -34,7 +34,10 @@ outputs were not copied into source control.
 - reversing-distance warning output on PC15;
 - slow automatic obstacle avoidance with left/right scanning;
 - four-sensor infrared line tracking, including cross intersections;
-- Bluetooth commands as two raw bytes **or** a text line such as `1,3`;
+- Bluetooth commands as two raw bytes, a numeric line such as `1,3`, **or**
+  a named line such as `fwd 3` / `w` / `qianjin` / `ting`;
+- USART1 debug TX prints `front:12.3 rear:8.1` about five times a second
+  (pipe into [termscope](https://github.com/CAOShurong/termscope));
 - an AHT20 temperature/humidity driver that is included but not called by the
   current main loop.
 
@@ -50,8 +53,9 @@ outputs were not copied into source control.
    8 MHz external crystal and a 72 MHz system clock.
 4. Build the `Car_1` project and flash it with an ST-Link or another supported
    programmer.
-5. Connect the Bluetooth module to USART2. Send either two raw command bytes
-   or a text line such as `1,3` (Serial Bluetooth Terminal works).
+5. Connect the Bluetooth module to USART2. Send two raw command bytes, a
+   numeric line such as `1,3`, or a named line such as `fwd 3` (Serial
+   Bluetooth Terminal works).
 
 ### Headless CMake build
 
@@ -73,8 +77,8 @@ The build produces `car-1.elf`, `car-1.hex`, `car-1.bin`, `car-1.map`, and a
 disassembly listing. The validator checks image size, the initial stack
 pointer, Thumb state, and that the reset handler lies inside the flash image.
 CI also compiles a host-side protocol test that exhaustively checks all 65,536
-possible two-byte Bluetooth commands, plus ASCII lines such as `1,3`, before
-building the firmware.
+possible two-byte Bluetooth commands, plus ASCII lines such as `1,3` and
+named lines such as `fwd 3` / `ting`, before building the firmware.
 Those are static build checks; they do not prove pin wiring, sensor polarity,
 timing, motor behavior, or a successful flash on physical hardware.
 
@@ -105,29 +109,35 @@ produce a 5 V echo signal and need level shifting.
 
 USART2 is configured as **9600 baud, 8 data bits, no parity, 1 stop bit**.
 
-Two encodings are accepted:
+Three encodings are accepted:
 
 - **binary**: exactly two bytes `[action, value]`, as before;
-- **text**: a line `action,value` or `action value`, terminated by CR/LF.
-  Example: `1,3` then Enter is forward at speed 3. A phone serial terminal
-  can send this. Incomplete or non-numeric lines are ignored; the last valid
-  command stays in effect.
+- **numeric text**: a line `action,value` or `action value`, terminated by CR/LF.
+  Example: `1,3` then Enter is forward at speed 3;
+- **named text**: `fwd 3`, `w`, `stop`, `track`, `avoid`, or pinyin such as
+  `qianjin` / `ting` / `xunji`. Drive words default to speed 3 if you omit
+  the number. Case does not matter.
+
+A phone serial terminal can send any of the text forms. Incomplete or
+unknown lines are ignored; the last valid command stays in effect.
 
 The receive callback publishes only complete commands. The main loop takes an
 interrupt-protected snapshot and validates both bytes before changing motor
 direction or PWM. An unknown action, an out-of-range value, or the
 unimplemented fast-avoidance command stops the motors and centers the servo.
 
-| action byte | behavior | value byte |
+| action | names (English / WASD / 拼音) | value |
 |---:|---|---|
-| `0` | stop and center servo | ignored |
-| `1` | drive forward | speed level `0`–`5` |
-| `2` | drive backward | speed level `0`–`5` |
-| `3` | turn left | turn/speed level `0`–`5` |
-| `4` | turn right | turn/speed level `0`–`5` |
-| `5` | move servo | position `0`–`4` |
-| `6` | obstacle mode | `0` stop, `1` slow avoidance; `2` is rejected until implemented |
-| `7` | enter line-tracking mode | ignored |
+| `0` | `stop` `halt` `ting` `tingzhi` | ignored |
+| `1` | `fwd` `forward` `go` `w` `qian` `qianjin` | speed `0`–`5` (default 3) |
+| `2` | `back` `backward` `rev` `s` `hou` `houtui` | speed `0`–`5` (default 3) |
+| `3` | `left` `a` `zuo` | speed `0`–`5` (default 3) |
+| `4` | `right` `d` `you` | speed `0`–`5` (default 3) |
+| `5` | `servo` `duoji` | position `0`–`4` (default 2, center) |
+| `6` | `avoid` `oa` `bizhang` | `0` stop, `1` slow avoidance (default 1); `2` is rejected until implemented |
+| `7` | `track` `t` `xunji` | ignored |
+
+`s` is WASD reverse, not stop — send `stop` or `ting` to halt.
 
 The `action=6, value=2` path remains reserved, but its
 `Auto_Obstacle_Avoidance_Fast()` implementation is currently empty. The command
@@ -200,8 +210,9 @@ The application modules are small enough to reuse independently: `motor.c`,
 目录浏览，并用 STM32CubeIDE 导入构建。
 
 蓝牙协议可以是两个原始字节 `[动作, 参数]`，也可以是手机串口助手发的文本
-`1,3` 加回车。例如 `{1, 3}` 或 `1,3` 表示以第 3 档前进，`{5, 2}` 或 `5,2`
-表示舵机回到中间位置。接线与完整命令表见上文。
+`1,3` 或 `fwd 3` / `w` / `qianjin` 加回车。`stop` 或 `ting` 停车，`track` 或
+`xunji` 循迹，`avoid` 或 `bizhang` 避障。USART1 会输出 `front:12.3 rear:8.1`
+测距行。接线与完整命令表见上文。
 
 如发现硬件组合、接线说明或代码方面的问题，请使用
 [GitHub Issues](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/issues)

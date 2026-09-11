@@ -7,6 +7,13 @@ All notable repository changes are documented here. This project follows
 
 ### Added
 
+- Named Bluetooth lines such as `fwd 3`, WASD (`w`/`a`/`s`/`d`), and pinyin
+  (`qianjin`, `ting`, `xunji`, `bizhang`) in addition to `1,3` and two raw
+  bytes. Drive words default to speed 3; `stop`/`ting` halt. Host tests cover
+  the aliases; this has not been newly flashed to hardware.
+- USART1 (~5 Hz) prints `front:… rear:…` labelled distances for a serial
+  plotter. Timeout is 20 ms so a disconnected debug UART does not stall the
+  drive loop.
 - Accept Bluetooth text lines such as `1,3` (CR/LF) in addition to the
   original two raw bytes, so Serial Bluetooth Terminal can drive the car.
   Non-numeric lines are ignored; binary two-byte commands still work.

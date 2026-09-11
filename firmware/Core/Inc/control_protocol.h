@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CONTROL_RX_ASCII_MAX 12u
+#define CONTROL_RX_ASCII_MAX 16u
 
 bool ControlCommand_IsValid(uint8_t action, uint8_t value);
 bool ControlCommand_ParseAscii(const char *line, size_t len, uint8_t *action, uint8_t *value);

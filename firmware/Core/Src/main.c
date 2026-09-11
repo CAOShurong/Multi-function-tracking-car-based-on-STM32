@@ -181,6 +181,23 @@ int main(void)
 
 	  //前后测量
 	  Fore_Rea_Ranging();
+	  {
+		  static uint32_t last_telem;
+		  uint32_t now = HAL_GetTick();
+
+		  /* USART1 debug TX: termscope-style labelled lines, ~5 Hz. */
+		  if ((now - last_telem) >= 200u) {
+			  char line[48];
+			  int n = snprintf(
+				  line, sizeof line, "front:%.1f rear:%.1f\r\n",
+				  (double)distance_front, (double)distance_rear
+			  );
+			  if (n > 0 && n < (int)sizeof line) {
+				  (void)HAL_UART_Transmit(&huart1, (uint8_t *)line, (uint16_t)n, 20);
+			  }
+			  last_telem = now;
+		  }
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

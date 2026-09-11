@@ -70,6 +70,30 @@ int main(void)
     assert(!parse_ok("1,3x", &action, &value));
     assert(!parse_ok("256,0", &action, &value));
 
+    assert(parse_ok("stop", &action, &value) && action == 0 && value == 0);
+    assert(parse_ok("STOP", &action, &value) && action == 0);
+    assert(parse_ok("ting", &action, &value) && action == 0);
+    assert(parse_ok("fwd", &action, &value) && action == 1 && value == 3);
+    assert(parse_ok("fwd 5", &action, &value) && action == 1 && value == 5);
+    assert(parse_ok("forward,2", &action, &value) && action == 1 && value == 2);
+    assert(parse_ok("w", &action, &value) && action == 1 && value == 3);
+    assert(parse_ok("qianjin,4", &action, &value) && action == 1 && value == 4);
+    assert(parse_ok("s", &action, &value) && action == 2 && value == 3);
+    assert(parse_ok("back,1", &action, &value) && action == 2 && value == 1);
+    assert(parse_ok("a", &action, &value) && action == 3 && value == 3);
+    assert(parse_ok("left 0", &action, &value) && action == 3 && value == 0);
+    assert(parse_ok("d", &action, &value) && action == 4 && value == 3);
+    assert(parse_ok("you,5", &action, &value) && action == 4 && value == 5);
+    assert(parse_ok("servo", &action, &value) && action == 5 && value == 2);
+    assert(parse_ok("duoji 0", &action, &value) && action == 5 && value == 0);
+    assert(parse_ok("avoid", &action, &value) && action == 6 && value == 1);
+    assert(parse_ok("bizhang,0", &action, &value) && action == 6 && value == 0);
+    assert(parse_ok("track", &action, &value) && action == 7 && value == 0);
+    assert(parse_ok("xunji", &action, &value) && action == 7);
+    assert(!parse_ok("nope", &action, &value));
+    assert(!parse_ok("fwd,", &action, &value));
+    assert(!parse_ok("fwd 3x", &action, &value));
+
     ControlRx_Init(&rx);
     {
         const uint8_t binary[] = {1, 3};
@@ -108,6 +132,20 @@ int main(void)
     {
         const uint8_t no_cmd[] = {'h', 'e', 'l', 'l', 'o', '\n'};
         assert(!feed_bytes(&rx, no_cmd, sizeof(no_cmd), &action, &value));
+    }
+
+    ControlRx_Init(&rx);
+    {
+        const uint8_t named[] = {'f', 'w', 'd', ' ', '3', '\n'};
+        assert(feed_bytes(&rx, named, sizeof(named), &action, &value));
+        assert(action == 1 && value == 3);
+    }
+
+    ControlRx_Init(&rx);
+    {
+        const uint8_t wasd[] = {'w', '\r', '\n'};
+        assert(feed_bytes(&rx, wasd, sizeof(wasd), &action, &value));
+        assert(action == 1 && value == 3);
     }
 
     return 0;
