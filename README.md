@@ -1,16 +1,25 @@
-# STM32F103 multifunction robot car
+# STM32F103 多功能循迹小车
+
+**STM32F103 蓝牙小车：四路循迹、超声波避障、OLED。源码在 [`firmware/`](firmware/)，不是只有 ZIP。**
+
+Bluetooth-controlled STM32F103 robot car: variable-speed drive, line tracking,
+ultrasonic obstacle avoidance, servo scan, reversing warning, OLED.
 
 [![Firmware build](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/actions/workflows/firmware.yml/badge.svg)](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/actions/workflows/firmware.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-An STM32CubeIDE project for a Bluetooth-controlled robot car with variable-speed
-drive, front and rear ultrasonic ranging, obstacle avoidance, four-sensor line
-tracking, servo scanning, a reversing-distance warning output, and an OLED
-status display.
+```sh
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake
+cmake --build build
+```
 
-The complete, browsable firmware now lives in [`firmware/`](firmware/). The
-original [`Car_1.zip`](Car_1.zip) is retained as a historical snapshot; build
-outputs from its `Debug/` directory were deliberately not copied into source
-control.
+Or open [`firmware/`](firmware/) in STM32CubeIDE (STM32F103C8Tx). Prebuilt ELF/HEX/BIN:
+[Releases](https://github.com/CAOShurong/Multi-function-tracking-car-based-on-STM32/releases/latest).
+
+The original [`Car_1.zip`](Car_1.zip) is a historical snapshot; `Debug/` build
+outputs were not copied into source control.
 
 <p align="center">
   <img src="./小车形象图.jpg" width="720" alt="Completed STM32 multifunction robot car">
@@ -191,10 +200,8 @@ The application modules are small enough to reuse independently: `motor.c`,
 
 ## License status
 
-The STM32 HAL and CMSIS directories retain their own license files under
+Application source, photographs, and videos in this repository are MIT
+([`LICENSE`](LICENSE)). The STM32 HAL and CMSIS trees keep their own files under
 [`firmware/Drivers/`](firmware/Drivers/). The OLED driver also declares MIT in
-its source header. See [third-party notices](THIRD_PARTY_NOTICES.md) for the
-component-by-component provenance and its gaps. A repository-wide license for
-the application-specific source, photographs, and videos has not yet been
-declared, so do not assume rights beyond the component licenses. Choosing that
-license requires an explicit maintainer decision.
+its source header. See [third-party notices](THIRD_PARTY_NOTICES.md) for
+component-by-component provenance.

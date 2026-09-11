@@ -7,6 +7,8 @@ All notable repository changes are documented here. This project follows
 
 ### Changed
 
+- Put a Chinese one-line pitch, CMake command, and MIT badge on the first screen.
+- State that application files are MIT; HAL/CMSIS stay under their vendor licenses.
 - Pin every third-party GitHub Action to an immutable commit while retaining
   version comments for reviewability.
 - Add weekly Dependabot checks for GitHub Actions updates; automatic security
